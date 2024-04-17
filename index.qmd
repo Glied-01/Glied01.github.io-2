@@ -1,0 +1,39 @@
+---
+title: "Henry Gliedman Webpage"
+Maps:
+  id: intro-heading
+  template: trestles
+  image: C:/Users/henry/Downloads/IMG_3187.JPG
+  image-shape: round
+  links:
+    - icon: envelope
+      href: mailto:gliedm1@stolaf.edu
+    - icon: github
+      href: https://github.com/Glied-01-2
+---
+
+::: {#intro-heading}
+## Henry Gliedman
+
+![Image description](IMG_3187.JPG){fig-align="center" width="1000"}
+
+Mathematics Student at St. Olaf College <br> [MSCS Department](https://wp.stolaf.edu/mscs/) \@ [St. Olaf College](https://wp.stolaf.edu/)
+
+### Education
+
+High School Diploma <br> 2021 \| Highland Park Senior High
+
+BA in Math, concentrations in Statistics/Data Science and Engineering<br> 2025 \| St. Olaf College
+:::
+
+### Get in Touch
+
+**Email**: <a href='mailto:Gliedm1@stolaf.edu'> Gliedm1 at stolaf.edu</a>
+
+**Office**: Ytterboe Hall
+
+**Address**: 1500 St. Olaf Ave, Northfield, MN 55057
+
+**Phone**: 651 260 7231
+
+**GitHub** <https://github.com/Glied-01-2>

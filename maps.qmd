@@ -1,0 +1,132 @@
+---
+title: "maps"
+format: html
+---
+
+#Maps
+
+Hello this is the Maps page. Here we are going to explore some maps, and how we can infer visual data.
+
+# Map 1:
+
+First we are going to import our data into R, and clean the NBA data so it can be joined to our US States data. The first map we are looking at today is a map of the distribution of NBA basketball players in the 48 continental states. First we are going to import our data into R, and clean the NBA data so it can be joined to our US States data. Then we will display the chart.
+
+```{r}
+library(tidyverse)
+library(mdsr)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+
+nba_data<- read.csv("Players.csv")
+#Edit NBA Data
+new_NBA<- nba_data|>
+  mutate(birth_state= tolower(birth_state))|>
+  drop_na(birth_state)|>
+  group_by(birth_state)|>
+  count(birth_state)
+
+#States Data
+library(maps)
+us_states <- map_data("state")
+
+us_states|> 
+  right_join(new_NBA, by=c("region"= "birth_state"))|>
+  ggplot(mapping = aes(x = long, y = lat, group = group)) + 
+  geom_polygon(aes(fill = n), color = "black")+
+  scale_fill_gradient(low = "white", high = "darkred", na.value = "white", 
+                      name = "NBA Players") +
+  labs(title = "NBA Players by US State", x = "", y = "") +
+  theme_minimal() +
+  theme(legend.position = "right", panel.grid = element_blank(), axis.text = element_blank(), axis.title = element_blank())
+
+```
+
+As we can see the map shows that a large amount of NBA talent comes from California and New York. With an exception in California it is also true that a large portion of NBA players come from states East of the Mississippi. This makes a lot of sense because basketball is culturally a much larger deal on the east coast and in Indiana and Ohio
+
+# Map 2 Gerrymandering in Wisconsin
+
+```{r}
+library(fec16)
+
+district_elections <- results_house |>
+  mutate(district = parse_number(district_id)) |>
+  group_by(state, district) |>
+  summarize(
+    N = n(), 
+    total_votes = sum(general_votes, na.rm = TRUE),
+    d_votes = sum(ifelse(party == "D", general_votes, 0), na.rm = TRUE),
+    r_votes = sum(ifelse(party == "R", general_votes, 0), na.rm = TRUE),
+    .groups = "drop" ) |>
+  mutate(
+    other_votes = total_votes - d_votes - r_votes,
+    r_prop = r_votes / total_votes,  
+    winner = ifelse(r_votes > d_votes, "Republican", "Democrat")
+  )
+
+wis_results <- district_elections |>
+  filter(state == "WI")
+wis_results |>                  
+  select(-state)
+```
+
+```{r}
+
+library(sf)
+src <- "http://cdmaps.polisci.ucla.edu/shp/districts113.zip"
+lcl_zip <- fs::path(tempdir(), "districts113.zip")
+download.file(src, destfile = lcl_zip)
+lcl_districts <- fs::path(tempdir(), "districts113")
+unzip(lcl_zip, exdir = lcl_districts)
+dsn_districts <- fs::path(lcl_districts, "districtShapes")
+
+# You can also downloaded zip file and uploaded it into R, but this uses a ton of space!
+# dsn_districts <- fs::path("Data/districtShapes")
+
+# read shapefiles into R as an sf object
+st_layers(dsn_districts)
+
+# be able to read as a data frame as well
+districts <- st_read(dsn_districts, layer = "districts113") |>
+  mutate(DISTRICT = parse_number(as.character(DISTRICT)))
+
+# create basic plot with NC congressional districts
+wis_shp <- districts |>
+  filter(STATENAME == "Wisconsin")
+
+
+```
+
+```{r}
+# Append election results to geospatial data
+wis_merged <- wis_shp |>
+  st_transform(4326) |>
+  inner_join(wis_results, by = c("DISTRICT" = "district"))
+
+
+
+#wis <- ggplot(data = wis_merged, aes(fill = winner)) +
+ # annotation_map_tile(zoom = 6, type = "osm", progress = "none") + 
+#  geom_sf(alpha = 0.5) +
+#  scale_fill_manual("Winner", values = c("Democrat" = "blue", "Republican" = "red")) + 
+ # theme_void()
+#wis
+```
+
+```{r}
+# A leaflet map can allow us to zoom in and see where major cities fit, etc.
+library(leaflet)
+pal <- colorNumeric(palette = "RdBu", domain = c(0, 1))
+
+leaflet_wis <- leaflet(wis_merged) |>
+  addTiles() |>
+  addPolygons(
+    weight = 1, fillOpacity = 0.7, 
+    color = ~pal(1 - r_prop),   # so red association with Reps
+    popup = ~paste("District", DISTRICT, "</br>", round(r_prop, 4))
+  ) |>                          # popups show prop Republican
+  setView(lng = -90, lat = 45, zoom = 7)
+leaflet_wis
+```
+
+This map may not be properly displaying the data. Sometimes when the website is loaded the leaflet data doesn't properly transfer, but it should be seen from the code that the democrats handily win districts 2,3, and 4. While the Republicans win the other 5 districts. Based on the data saying that district 2,3, and 4 were all won by large margins, and districts 1,7, and 8 were all close elections, I would conclude that there is some level of gerrymandering going on in Wisconsin.
